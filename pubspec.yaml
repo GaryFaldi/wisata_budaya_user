@@ -1,0 +1,32 @@
+name: wisata_budaya
+description: Aplikasi Peta Wisata Budaya dengan panduan audio berbasis QR Code.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP requests ke API
+  http: ^1.2.0
+
+  # QR Code scanner
+  mobile_scanner: ^5.2.3
+
+  # Audio player untuk panduan sejarah
+  audioplayers: ^6.1.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/audio/
