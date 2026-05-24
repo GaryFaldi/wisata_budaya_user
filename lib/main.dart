@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
 import 'utils/session_service.dart';
 
 void main() {
@@ -49,7 +50,7 @@ class _AuthGateState extends State<AuthGate> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            loggedIn ? const DashboardScreen() : const DashboardScreen(),
+            loggedIn ? const DashboardScreen() : const LoginScreen(),
       ),
     );
   }

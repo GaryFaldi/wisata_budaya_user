@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:nusantara_trail/models/review_model.dart';
+import 'package:nusantara_trail/models/user_review_model.dart';
+import 'package:nusantara_trail/utils/auth_service.dart';
+import 'package:nusantara_trail/utils/review_service.dart';
+import 'package:nusantara_trail/utils/session_service.dart';
 import 'package:nusantara_trail/utils/wisata_service.dart';
 import '../models/wisata_model.dart';
 
@@ -21,6 +26,11 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _showFullSejarah = false;
   bool _showFullDeskripsi = false;
 
+  ReviewModel? _reviewData;
+  bool _isLoadingReview = true;
+  bool _hasReviewed = false;
+  UserReview? _myReview;
+
   // Review state
   int _reviewRating = 0;
   final _reviewController = TextEditingController();
@@ -29,6 +39,8 @@ class _DetailScreenState extends State<DetailScreen> {
   @override
   void initState() {
     super.initState();
+    _loadReviews();
+
     _audioPlayer = AudioPlayer();
 
     _fetchWisata();
@@ -80,7 +92,7 @@ class _DetailScreenState extends State<DetailScreen> {
         await _audioPlayer.resume();
       } else {
         print('Audio URL: ${_wisata!.audioSejarah}');
-        final audioUrl = 'http://192.168.1.10:3000${_wisata!.audioSejarah}';
+        final audioUrl = '${AuthService.baseUrl}${_wisata!.audioSejarah}';
         await _audioPlayer.play(UrlSource(audioUrl));
       }
     }
@@ -92,39 +104,210 @@ class _DetailScreenState extends State<DetailScreen> {
     return '$m:$s';
   }
 
-  void _submitReview() {
+  Future<void> _loadReviews() async {
+    try {
+      final data = await ReviewService.getReviewsByLocation(
+        widget.wisataId,
+      );
+
+      final currentUser = await SessionService.getUser();
+
+      UserReview? myReview;
+
+      if (currentUser != null) {
+        try {
+          myReview = data.reviews.firstWhere(
+            (review) => review.userId == currentUser.id,
+          );
+        } catch (_) {}
+      }
+
+      setState(() {
+        _reviewData = data;
+        _myReview = myReview;
+        _hasReviewed = myReview != null;
+        _isLoadingReview = false;
+        _reviewSubmitted = false;
+        if (myReview != null) {
+          _reviewRating = myReview.rating;
+          _reviewController.text = myReview.comment ?? '';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingReview = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal mengambil review: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitReview() async {
     if (_reviewRating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Pilih rating terlebih dahulu'),
-          backgroundColor: const Color(0xFFC0392B),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        const SnackBar(
+          content: Text(
+            'Pilih rating terlebih dahulu',
+          ),
         ),
       );
       return;
     }
-    if (_reviewController.text.trim().isEmpty) {
+
+    try {
+      if (_hasReviewed && _myReview != null) {
+        /// UPDATE REVIEW
+        await ReviewService.updateReview(
+          reviewId: _myReview!.id!,
+          rating: _reviewRating,
+          comment: _reviewController.text.trim(),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Review berhasil diperbarui',
+            ),
+          ),
+        );
+      } else {
+        /// CREATE REVIEW
+        await ReviewService.createReview(
+          locationId: widget.wisataId,
+          rating: _reviewRating,
+          comment: _reviewController.text.trim(),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Review berhasil dikirim',
+            ),
+          ),
+        );
+      }
+
+      await _loadReviews();
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Tulis ulasan terlebih dahulu'),
-          backgroundColor: const Color(0xFFC0392B),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text('$e'),
         ),
       );
-      return;
     }
-    setState(() => _reviewSubmitted = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Ulasan berhasil dikirim, terima kasih!'),
-        backgroundColor: const Color(0xFF4A7C2F),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+  }
+
+  Future<void> _deleteReview() async {
+    if (_myReview == null || _myReview!.id == null) return;
+
+    try {
+      await ReviewService.deleteReview(_myReview!.id!);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Review berhasil dihapus'),
+        ),
+      );
+
+      setState(() {
+        _hasReviewed = false;
+        _myReview = null;
+        _reviewController.clear();
+        _reviewRating = 0;
+      });
+
+      await _loadReviews();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+        ),
+      );
+    }
+  }
+
+  Widget _buildReviewList() {
+    if (_isLoadingReview) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_reviewData == null || _reviewData!.reviews.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 16),
+        child: Text(
+          'Belum ada ulasan untuk lokasi ini.',
+          style: TextStyle(color: Color(0xFF6B7C61)),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _reviewData!.reviews.length,
+      itemBuilder: (context, index) {
+        final review = _reviewData!.reviews[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFFD4A853),
+              child: Text(
+                review.completeUser.name.isNotEmpty
+                    ? review.completeUser.name[0]
+                    : '-',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            title: Text(
+              review.completeUser.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A2E0A),
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  review.comment?.isNotEmpty == true ? review.comment! : '-',
+                  style: const TextStyle(color: Color(0xFF6B7C61)),
+                ),
+              ],
+            ),
+            trailing: Text(
+              '⭐ ${review.rating}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFB8860B),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -173,7 +356,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Widget _buildSliverAppBar(Wisata wisata) {
     final imageUrl = wisata.images.isNotEmpty
-        ? 'http://192.168.1.10:3000${wisata.images[_currentImageIndex].imageName}'
+        ? '${AuthService.baseUrl}${wisata.images[_currentImageIndex].imageName}'
         : null;
 
     return SliverAppBar(
@@ -775,6 +958,8 @@ class _DetailScreenState extends State<DetailScreen> {
             child:
                 _reviewSubmitted ? _buildReviewSuccess() : _buildReviewForm(),
           ),
+          const SizedBox(height: 18),
+          _buildReviewList(),
         ],
       ),
     );
@@ -928,12 +1113,33 @@ class _DetailScreenState extends State<DetailScreen> {
               ),
               elevation: 0,
             ),
-            child: const Text(
-              'Kirim Ulasan',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            child: Text(
+              _hasReviewed ? 'Perbarui Ulasan' : 'Kirim Ulasan',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),
+        if (_hasReviewed && _myReview != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: _deleteReview,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB8860B),
+                side: const BorderSide(color: Color(0xFFB8860B)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Hapus Ulasan',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

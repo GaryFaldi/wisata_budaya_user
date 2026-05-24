@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';
+import '../utils/session_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,6 +37,20 @@ class _LoginScreenState extends State<LoginScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
+
+    // ✅ Tambahan: cek session
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final loggedIn = await SessionService.isLoggedIn();
+    if (!mounted) return;
+    if (loggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    }
   }
 
   @override

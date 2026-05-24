@@ -1,22 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:nusantara_trail/utils/auth_service.dart';
 import '../models/wisata_model.dart';
 
 class WisataService {
-  // Ganti dengan base URL API kamu
-  static const String baseUrl = 'http://192.168.1.10:3000';
-  static const String token = 'YOUR_BEARER_TOKEN_HERE';
-
-  static Map<String, String> get _headers => {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      };
-
   /// Ambil semua data wisata
   static Future<List<Wisata>> getAllWisata() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/api/locations/1'),
-      headers: _headers,
+      Uri.parse('${AuthService.baseUrl}/api/locations/1'),
+      headers: await AuthService.getHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -32,18 +24,18 @@ class WisataService {
   /// Ambil detail wisata berdasarkan ID
   static Future<Wisata> getWisataById(int id) async {
     final response = await http.get(
-      Uri.parse('http://192.168.1.10:3000/api/locations/$id'),
-      headers: _headers,
+      Uri.parse('${AuthService.baseUrl}/api/locations/$id'),
+      headers: await AuthService.getHeaders(),
     );
 
     final contentResponse = await http.get(
-      Uri.parse('http://192.168.1.10:3000/api/content/$id'),
-      headers: _headers,
+      Uri.parse('${AuthService.baseUrl}/api/content/$id'),
+      headers: await AuthService.getHeaders(),
     );
 
     final audioResponse = await http.get(
-      Uri.parse('http://192.168.1.10:3000/api/audio/$id'),
-      headers: _headers,
+      Uri.parse('${AuthService.baseUrl}/api/audio/$id'),
+      headers: await AuthService.getHeaders(),
     );
 
     if (response.statusCode == 200 &&

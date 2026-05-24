@@ -20,7 +20,9 @@ class SessionService {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString(_keyUser);
     if (userJson == null) return null;
-    return User.fromJson(jsonDecode(userJson));
+    final token = prefs.getString(_keyToken);
+    return User.fromJson(jsonDecode(userJson),
+        token: token); // ✅ fix: sertakan token
   }
 
   /// Ambil token dari session

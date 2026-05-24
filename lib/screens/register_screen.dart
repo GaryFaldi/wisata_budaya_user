@@ -61,6 +61,15 @@ class _RegisterScreenState extends State<RegisterScreen>
         passwordConfirmation: _confirmPasswordController.text,
       );
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Akun berhasil dibuat! Silakan masuk.'),
+          backgroundColor: const Color(0xFF2D5016),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
