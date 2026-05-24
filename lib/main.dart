@@ -28,7 +28,6 @@ class WisataBudayaApp extends StatelessWidget {
   }
 }
 
-/// Cek session saat app dibuka — arahkan ke Login atau Dashboard
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -50,14 +49,13 @@ class _AuthGateState extends State<AuthGate> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            loggedIn ? const DashboardScreen() : const LoginScreen(),
+            loggedIn ? const DashboardScreen() : const DashboardScreen(),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Splash sederhana saat cek session
     return const Scaffold(
       backgroundColor: Color(0xFF2D5016),
       body: Center(

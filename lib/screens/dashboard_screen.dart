@@ -3,6 +3,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nusantara_trail/screens/login_screen.dart';
 import 'package:nusantara_trail/utils/auth_service.dart';
 import 'detail_screen.dart';
+import '../utils/session_service.dart';
+import '../models/user_model.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,6 +14,19 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await SessionService.getUser();
+    if (mounted) setState(() => _user = user);
+  }
+
   void _onQRScanned(BuildContext context, String? rawValue) async {
     if (rawValue == null) return;
 
@@ -140,7 +155,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 20),
           // Greeting dengan nama user dari session
           Text(
-            'Selamat Datang, di Nusantara Trail!',
+            'Selamat Datang,\n${_user?.name ?? 'Pengguna'}!',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -451,7 +466,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Aplikasi ini dikembangkan oleh Dinas Pariwisata untuk memberikan panduan audio dan informasi sejarah di situs budaya.',
+                    'Aplikasi ini hadir untuk mendukung perkembangan pariwisata Indonesia dengan memperkenalkan kekayaan budaya dan destinasi wisata Nusantara melalui pengalaman digital yang informatif, interaktif, dan mudah diakses oleh semua kalangan.',
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF8A7040),

@@ -448,12 +448,16 @@ class _DetailScreenState extends State<DetailScreen> {
               const Icon(Icons.place_rounded,
                   size: 16, color: Color(0xFFD4A853)),
               const SizedBox(width: 4),
-              Text(
-                wisata.lokasi,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7C61),
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  wisata.lokasi,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6B7C61),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
