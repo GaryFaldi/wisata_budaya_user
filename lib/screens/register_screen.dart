@@ -76,6 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         (_) => false,
       );
     } catch (e) {
+      print('Register Error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

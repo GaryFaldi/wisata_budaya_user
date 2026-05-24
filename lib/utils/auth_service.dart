@@ -50,7 +50,7 @@ class AuthService {
     );
   }
 
-  static Future<User> register({
+  static Future<void> register({
     required String name,
     required String email,
     required String password,
@@ -68,16 +68,8 @@ class AuthService {
     );
 
     final body = jsonDecode(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final user = User.fromJson(
-        body['data']['user'],
-        token: body['data']['accessToken'],
-      );
-
-      await SessionService.saveSession(user);
-
-      return user;
+    if (response.statusCode == 201 && body['status'] == "success") {
+      return;
     } else if (response.statusCode == 422) {
       final errors = body['errors'] as Map<String, dynamic>?;
 
