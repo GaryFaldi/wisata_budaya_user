@@ -20,11 +20,8 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _showFullSejarah = false;
   bool _showFullDeskripsi = false;
 
-  // ============================================================
   // SWAP URL — aktifkan saat pakai API
-  // ============================================================
   // static const String fileBaseUrl = 'https://your-api-domain.com/storage/';
-  // ============================================================
 
   @override
   void initState() {
@@ -63,14 +60,11 @@ class _DetailScreenState extends State<DetailScreen> {
       if (_playerState == PlayerState.paused) {
         await _audioPlayer.resume();
       } else {
-        // ============================================================
         // SWAP AUDIO SOURCE — pilih salah satu
-        // ============================================================
         await _audioPlayer
             .play(AssetSource(widget.wisata.audioSejarah)); // ← DUMMY
         // final audioUrl = '$fileBaseUrl${widget.wisata.audioSejarah}';  // ← API
         // await _audioPlayer.play(UrlSource(audioUrl));                  // ← API
-        // ============================================================
       }
     }
   }
@@ -112,16 +106,13 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildSliverAppBar(Wisata wisata) {
-    // ============================================================
     // SWAP IMAGE URL — pilih salah satu
-    // ============================================================
     final imageUrl = wisata.images.isNotEmpty
         ? wisata.images[_currentImageIndex].imageName // ← DUMMY
         : null;
     // final imageUrl = wisata.images.isNotEmpty                              // ← API
     //     ? '$fileBaseUrl${wisata.images[_currentImageIndex].imageName}'     // ← API
     //     : null;                                                             // ← API
-    // ============================================================
 
     return SliverAppBar(
       expandedHeight: 280,
@@ -143,9 +134,7 @@ class _DetailScreenState extends State<DetailScreen> {
           fit: StackFit.expand,
           children: [
             if (imageUrl != null)
-              // ============================================================
               // SWAP IMAGE WIDGET — pilih salah satu
-              // ============================================================
               Image.asset(
                 // ← DUMMY
                 imageUrl,
@@ -165,7 +154,6 @@ class _DetailScreenState extends State<DetailScreen> {
             //         color: Colors.white54, size: 48),
             //   ),
             // )
-            // ============================================================
             else
               Container(color: const Color(0xFF2D5016)),
             const DecoratedBox(
@@ -393,13 +381,9 @@ class _DetailScreenState extends State<DetailScreen> {
             itemCount: wisata.images.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (_, i) {
-              // ============================================================
               // SWAP IMAGE URL — pilih salah satu
-              // ============================================================
               final imgUrl = wisata.images[i].imageName; // ← DUMMY
               // final imgUrl = '$fileBaseUrl${wisata.images[i].imageName}'; // ← API
-              // ============================================================
-
               return GestureDetector(
                 onTap: () => setState(() => _currentImageIndex = i),
                 child: AnimatedContainer(
@@ -416,9 +400,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    // ============================================================
                     // SWAP IMAGE WIDGET — pilih salah satu
-                    // ============================================================
                     child: Image.asset(
                       // ← DUMMY
                       imgUrl,
@@ -438,7 +420,6 @@ class _DetailScreenState extends State<DetailScreen> {
                     //         color: Colors.grey, size: 32),
                     //   ),
                     // ),
-                    // ============================================================
                   ),
                 ),
               );
