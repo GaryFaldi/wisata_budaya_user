@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'detail_screen.dart';
-import '../data/dummy_data.dart'; // DUMMY
-// import '../utils/wisata_service.dart'; // API
-import '../utils/session_service.dart';
-import '../utils/auth_service.dart';
-import '../models/user_model.dart';
-import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,119 +10,30 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  User? _currentUser;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final user = await SessionService.getUser();
-    if (mounted) setState(() => _currentUser = user);
-  }
-
-  Future<void> _logout() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Keluar',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2E0A),
-          ),
-        ),
-        content: const Text(
-          'Apakah kamu yakin ingin keluar?',
-          style: TextStyle(color: Color(0xFF6B7C61)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Batal',
-              style: TextStyle(color: Color(0xFF6B7C61)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2D5016),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-    await AuthService.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
-  }
-
   void _onQRScanned(BuildContext context, String? rawValue) async {
     if (rawValue == null) return;
 
-    // DUMMY MODE
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DetailScreen(wisata: DummyData.wisata),
-      ),
-    );
-    return;
+    String wisataIdRaw = rawValue.split("-")[1];
+    int wisataId = int.tryParse(wisataIdRaw) ?? 1;
 
-    // API MODE
-    // int? wisataId;
-    // wisataId = int.tryParse(rawValue);
-    // if (wisataId == null) {
-    //   final uri = Uri.tryParse(rawValue);
-    //   if (uri != null) {
-    //     final segments = uri.pathSegments;
-    //     if (segments.isNotEmpty) {
-    //       wisataId = int.tryParse(segments.last);
-    //     }
-    //   }
-    // }
-    //
-    // if (wisataId == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('QR Code tidak valid')),
-    //   );
-    //   return;
-    // }
-    //
-    // showDialog(
-    //   context: context,
-    //   barrierDismissible: false,
-    //   builder: (_) => const Center(child: CircularProgressIndicator()),
-    // );
-    //
-    // try {
-    //   final wisata = await WisataService.getWisataById(wisataId!);
-    //   Navigator.of(context).pop();
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (_) => DetailScreen(wisata: wisata)),
-    //   );
-    // } catch (e) {
-    //   Navigator.of(context).pop();
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Wisata tidak ditemukan: $e')),
-    //   );
-    // }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      Navigator.of(context).pop();
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => DetailScreen(wisataId: wisataId)),
+      );
+    } catch (e) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Wisata tidak ditemukan: $e')),
+      );
+    }
   }
 
   @override
@@ -205,28 +110,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const Spacer(),
-              // Tombol logout
-              GestureDetector(
-                onTap: _logout,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 20),
           // Greeting dengan nama user dari session
           Text(
-            'Selamat Datang,\n${_currentUser?.name ?? 'Penjelajah Budaya'}!',
+            'Selamat Datang, di Nusantara Trail!',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -244,31 +133,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           // Info email user
-          if (_currentUser != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.person_rounded,
-                      color: Color(0xFFD4A853), size: 14),
-                  const SizedBox(width: 6),
-                  Text(
-                    _currentUser!.email,
-                    style: const TextStyle(
-                      color: Color(0xFFB8C9A0),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

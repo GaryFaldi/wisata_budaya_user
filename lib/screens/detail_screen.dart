@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:nusantara_trail/utils/wisata_service.dart';
 import '../models/wisata_model.dart';
 
 class DetailScreen extends StatefulWidget {
-  final Wisata wisata;
-
-  const DetailScreen({super.key, required this.wisata});
+  final int wisataId;
+  const DetailScreen({required this.wisataId, super.key});
 
   @override
   State<DetailScreen> createState() => _DetailScreenState();
 }
 
 class _DetailScreenState extends State<DetailScreen> {
+  Wisata? _wisata;
   late final AudioPlayer _audioPlayer;
   PlayerState _playerState = PlayerState.stopped;
   Duration _duration = Duration.zero;
@@ -20,13 +21,17 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _showFullSejarah = false;
   bool _showFullDeskripsi = false;
 
-  // SWAP URL — aktifkan saat pakai API
-  // static const String fileBaseUrl = 'https://your-api-domain.com/storage/';
+  // Review state
+  int _reviewRating = 0;
+  final _reviewController = TextEditingController();
+  bool _reviewSubmitted = false;
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
+
+    _fetchWisata();
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) setState(() => _playerState = state);
@@ -47,9 +52,23 @@ class _DetailScreenState extends State<DetailScreen> {
     });
   }
 
+  Future<void> _fetchWisata() async {
+    try {
+      final wisata = await WisataService.getWisataById(widget.wisataId);
+      if (mounted) setState(() => _wisata = wisata);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: $e')),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _reviewController.dispose();
     super.dispose();
   }
 
@@ -60,11 +79,9 @@ class _DetailScreenState extends State<DetailScreen> {
       if (_playerState == PlayerState.paused) {
         await _audioPlayer.resume();
       } else {
-        // SWAP AUDIO SOURCE — pilih salah satu
-        await _audioPlayer
-            .play(AssetSource(widget.wisata.audioSejarah)); // ← DUMMY
-        // final audioUrl = '$fileBaseUrl${widget.wisata.audioSejarah}';  // ← API
-        // await _audioPlayer.play(UrlSource(audioUrl));                  // ← API
+        print('Audio URL: ${_wisata!.audioSejarah}');
+        final audioUrl = 'http://192.168.1.10:3000${_wisata!.audioSejarah}';
+        await _audioPlayer.play(UrlSource(audioUrl));
       }
     }
   }
@@ -75,9 +92,56 @@ class _DetailScreenState extends State<DetailScreen> {
     return '$m:$s';
   }
 
+  void _submitReview() {
+    if (_reviewRating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Pilih rating terlebih dahulu'),
+          backgroundColor: const Color(0xFFC0392B),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+    if (_reviewController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Tulis ulasan terlebih dahulu'),
+          backgroundColor: const Color(0xFFC0392B),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+    setState(() => _reviewSubmitted = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Ulasan berhasil dikirim, terima kasih!'),
+        backgroundColor: const Color(0xFF4A7C2F),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final wisata = widget.wisata;
+    if (_wisata == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF2D5016),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFD4A853),
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+    final wisata = _wisata!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
@@ -96,6 +160,8 @@ class _DetailScreenState extends State<DetailScreen> {
                 _buildDeskripsiSection(wisata),
                 _buildSejarahSection(wisata),
                 _buildLokasiSection(wisata),
+                const SizedBox(height: 20),
+                _buildReviewSection(),
                 const SizedBox(height: 40),
               ],
             ),
@@ -106,13 +172,9 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildSliverAppBar(Wisata wisata) {
-    // SWAP IMAGE URL — pilih salah satu
     final imageUrl = wisata.images.isNotEmpty
-        ? wisata.images[_currentImageIndex].imageName // ← DUMMY
+        ? 'http://192.168.1.10:3000${wisata.images[_currentImageIndex].imageName}'
         : null;
-    // final imageUrl = wisata.images.isNotEmpty                              // ← API
-    //     ? '$fileBaseUrl${wisata.images[_currentImageIndex].imageName}'     // ← API
-    //     : null;                                                             // ← API
 
     return SliverAppBar(
       expandedHeight: 280,
@@ -134,9 +196,7 @@ class _DetailScreenState extends State<DetailScreen> {
           fit: StackFit.expand,
           children: [
             if (imageUrl != null)
-              // SWAP IMAGE WIDGET — pilih salah satu
-              Image.asset(
-                // ← DUMMY
+              Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
@@ -145,15 +205,6 @@ class _DetailScreenState extends State<DetailScreen> {
                       color: Colors.white54, size: 48),
                 ),
               )
-            // Image.network(        // ← API
-            //   imageUrl,
-            //   fit: BoxFit.cover,
-            //   errorBuilder: (_, __, ___) => Container(
-            //     color: const Color(0xFF2D5016),
-            //     child: const Icon(Icons.image_not_supported,
-            //         color: Colors.white54, size: 48),
-            //   ),
-            // )
             else
               Container(color: const Color(0xFF2D5016)),
             const DecoratedBox(
@@ -381,9 +432,7 @@ class _DetailScreenState extends State<DetailScreen> {
             itemCount: wisata.images.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (_, i) {
-              // SWAP IMAGE URL — pilih salah satu
-              final imgUrl = wisata.images[i].imageName; // ← DUMMY
-              // final imgUrl = '$fileBaseUrl${wisata.images[i].imageName}'; // ← API
+              final imgUrl = wisata.images[i].imageName;
               return GestureDetector(
                 onTap: () => setState(() => _currentImageIndex = i),
                 child: AnimatedContainer(
@@ -400,9 +449,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    // SWAP IMAGE WIDGET — pilih salah satu
                     child: Image.asset(
-                      // ← DUMMY
                       imgUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
@@ -411,15 +458,6 @@ class _DetailScreenState extends State<DetailScreen> {
                             color: Colors.grey, size: 32),
                       ),
                     ),
-                    // child: Image.network(  // ← API
-                    //   imgUrl,
-                    //   fit: BoxFit.cover,
-                    //   errorBuilder: (_, __, ___) => Container(
-                    //     color: const Color(0xFFE8E0CC),
-                    //     child: const Icon(Icons.image,
-                    //         color: Colors.grey, size: 32),
-                    //   ),
-                    // ),
                   ),
                 ),
               );
@@ -450,7 +488,9 @@ class _DetailScreenState extends State<DetailScreen> {
             ),
           ),
           const SizedBox(height: 10),
+          // Selalu full width, tinggi mengikuti konten
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -543,16 +583,15 @@ class _DetailScreenState extends State<DetailScreen> {
             ],
           ),
           const SizedBox(height: 10),
+          // Selalu full width, tinggi mengikuti konten
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: const Border(
-                left: BorderSide(
-                  color: Color(0xFFD4A853),
-                  width: 4,
-                ),
+                left: BorderSide(color: Color(0xFFD4A853), width: 4),
               ),
               boxShadow: [
                 BoxShadow(
@@ -618,6 +657,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
           const SizedBox(height: 10),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -630,46 +670,271 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
               ],
             ),
-            child: Row(
+            // Pakai Column biar alamat bisa overflow ke bawah
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D5016).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.place_rounded,
-                      color: Color(0xFF2D5016), size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        wisata.lokasi,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Color(0xFF1A2E0A),
-                        ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2D5016).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${wisata.latitude.toStringAsFixed(4)}, ${wisata.longitude.toStringAsFixed(4)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8A9A7A),
-                        ),
+                      child: const Icon(Icons.place_rounded,
+                          color: Color(0xFF2D5016), size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Alamat bisa wrap ke bawah sebanyak yang diperlukan
+                          Text(
+                            wisata.lokasi,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Color(0xFF1A2E0A),
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${wisata.latitude.toStringAsFixed(4)}, ${wisata.longitude.toStringAsFixed(4)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF8A9A7A),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReviewSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Ulasan',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2E0A),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4A853).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: const Text(
+                  'Bagikan Pengalamanmu',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFB8860B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child:
+                _reviewSubmitted ? _buildReviewSuccess() : _buildReviewForm(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewSuccess() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4A7C2F).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF4A7C2F),
+            size: 40,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Terima Kasih!',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A2E0A),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Ulasan kamu sudah berhasil dikirim.',
+          style: TextStyle(fontSize: 13, color: Color(0xFF6B7C61)),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        // Tampilkan bintang yang dipilih
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(5, (i) {
+            return Icon(
+              i < _reviewRating
+                  ? Icons.star_rounded
+                  : Icons.star_outline_rounded,
+              color: const Color(0xFFD4A853),
+              size: 24,
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Rating',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A2E0A),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(5, (i) {
+            final star = i + 1;
+            return GestureDetector(
+              onTap: () => setState(() => _reviewRating = star),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(
+                  star <= _reviewRating
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
+                  color: star <= _reviewRating
+                      ? const Color(0xFFD4A853)
+                      : const Color(0xFFCCCCCC),
+                  size: 36,
+                ),
+              ),
+            );
+          }),
+        ),
+        if (_reviewRating > 0) ...[
+          const SizedBox(height: 4),
+          Text(
+            [
+              '',
+              'Sangat Buruk',
+              'Buruk',
+              'Cukup',
+              'Bagus',
+              'Luar Biasa'
+            ][_reviewRating],
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFFB8860B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        const Text(
+          'Ulasan',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A2E0A),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _reviewController,
+          maxLines: 4,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1A2E0A)),
+          decoration: InputDecoration(
+            hintText: 'Ceritakan pengalamanmu di sini...',
+            hintStyle: const TextStyle(color: Color(0xFFADB8A3), fontSize: 13),
+            filled: true,
+            fillColor: const Color(0xFFF5F0E8),
+            contentPadding: const EdgeInsets.all(14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFDDE5D4)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFDDE5D4)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  const BorderSide(color: Color(0xFF4A7C2F), width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _submitReview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2D5016),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Kirim Ulasan',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

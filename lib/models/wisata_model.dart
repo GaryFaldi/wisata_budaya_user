@@ -36,8 +36,8 @@ class Wisata {
   final double longitude;
   final double latitude;
   final String deskripsi;
-  final String sejarah;
-  final String audioSejarah;
+  String sejarah;
+  String audioSejarah;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -56,20 +56,27 @@ class Wisata {
   });
 
   factory Wisata.fromJson(Map<String, dynamic> json) {
+    final data = json['data'];
+
     return Wisata(
-      id: json['id'],
-      nama: json['nama'],
-      images: (json['images'] as List<dynamic>)
-          .map((e) => WisataImage.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      lokasi: json['lokasi'],
-      longitude: (json['longitude'] as num).toDouble(),
-      latitude: (json['latitude'] as num).toDouble(),
-      deskripsi: json['deskripsi'],
-      sejarah: json['sejarah'],
-      audioSejarah: json['audio_sejarah'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      id: data['id'],
+      nama: data['name'],
+      images: [
+        WisataImage(
+          id: 0,
+          imageName: data['coverImage'] ?? 'assets/images/default.jpg',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        )
+      ], // karena API belum mengirim images
+      lokasi: data['address'],
+      longitude: double.parse(data['longitude']),
+      latitude: double.parse(data['latitude']),
+      deskripsi: data['description'],
+      sejarah: '', // belum ada di API
+      audioSejarah: '', // belum ada di API
+      createdAt: DateTime.parse(data['createdAt']),
+      updatedAt: DateTime.parse(data['updatedAt']),
     );
   }
 
