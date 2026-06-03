@@ -49,7 +49,7 @@ class _AuthGateState extends State<AuthGate> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            loggedIn ? const DashboardScreen() : const DashboardScreen(),
+            loggedIn ? const DashboardScreen() : const LoginScreen(),
       ),
     );
   }

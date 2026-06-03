@@ -92,7 +92,8 @@ class _DetailScreenState extends State<DetailScreen> {
         await _audioPlayer.resume();
       } else {
         print('Audio URL: ${_wisata!.audioSejarah}');
-        final audioUrl = '${AuthService.baseUrl}${_wisata!.audioSejarah}';
+        final audioUrl =
+            "http://172.24.237.135:3000/uploads/audio/borobudur.mp3.mp3";
         await _audioPlayer.play(UrlSource(audioUrl));
       }
     }
@@ -356,8 +357,13 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Widget _buildSliverAppBar(Wisata wisata) {
     final imageUrl = wisata.images.isNotEmpty
-        ? '${AuthService.baseUrl}${wisata.images[_currentImageIndex].imageName}'
+        ? '${wisata.images[_currentImageIndex].imageName}'
         : null;
+
+    final imgUri =
+        "http://172.24.237.135:3000/uploads/images/borobudur.jpg.jpeg";
+
+    print("imageUrl: $imageUrl");
 
     return SliverAppBar(
       expandedHeight: 280,
@@ -378,9 +384,9 @@ class _DetailScreenState extends State<DetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl != null)
+            if (imgUri != null)
               Image.network(
-                imageUrl,
+                imgUri,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: const Color(0xFF2D5016),
@@ -636,7 +642,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
+                    child: Image.network(
                       imgUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(

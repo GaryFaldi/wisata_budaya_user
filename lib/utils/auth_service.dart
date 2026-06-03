@@ -4,7 +4,8 @@ import '../models/user_model.dart';
 import 'session_service.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://192.168.0.198:3000';
+  static const String baseUrl =
+      'https://nusantara-backend-498485862524.asia-southeast2.run.app';
 
   /// Headers dengan token dinamis
   static Future<Map<String, String>> getHeaders() async {

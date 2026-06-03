@@ -47,8 +47,18 @@ class WisataService {
       final audioBody = jsonDecode(audioResponse.body);
       if (body['status'] == "success") {
         Wisata wisata = Wisata.fromJson(body);
-        wisata.sejarah = contentBody['data'][0]['sections'][0]['body'] ?? '';
-        wisata.audioSejarah = audioBody['data'][0]['audioUrl'];
+        
+        // Safely access nested array indices
+        if (contentBody['data'] != null &&
+            (contentBody['data'] as List).isNotEmpty &&
+            (contentBody['data'][0]['sections'] as List).isNotEmpty) {
+          wisata.sejarah = contentBody['data'][0]['sections'][0]['body'] ?? '';
+        }
+        
+        if (audioBody['data'] != null && (audioBody['data'] as List).isNotEmpty) {
+          wisata.audioSejarah = audioBody['data'][0]['audioUrl'] ?? '';
+        }
+        
         return wisata;
       }
       throw Exception('Wisata tidak ditemukan');

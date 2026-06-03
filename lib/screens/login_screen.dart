@@ -38,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen>
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
 
-    // ✅ Tambahan: cek session
     _checkSession();
   }
 
